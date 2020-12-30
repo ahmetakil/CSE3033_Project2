@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-#include "utils.c"
 
 const char *COMMANDS[] = {"ps_all", "search", "bookmark", "exit"};
 
@@ -43,7 +42,7 @@ void run_command(int index, struct process **finished_pids, struct process **bac
     switch (index)
     {
     case 1:
-        ps_all(finished_pids, background_pids, jobNumber);
+        ps_all(background_pids, finished_pids, jobNumber);
         break;
 
     default:
