@@ -50,7 +50,6 @@ void setup(char inputBuffer[], char *args[], int *background)
         exit(-1); /* terminate with error code of -1 */
     }
 
-    printf(">>%s<<", inputBuffer);
     for (i = 0; i < length; i++)
     { /* examine every character in the inputBuffer */
 
@@ -89,12 +88,11 @@ void setup(char inputBuffer[], char *args[], int *background)
     }                /* end of for */
     args[ct] = NULL; /* just in case the input line was > 80 */
 
-    for (i = 0; i <= ct; i++)
-        printf("args %d = %s\n", i, args[i]);
 } /* end of setup routine */
 
 int main(void)
 {
+    setvbuf(stdout, NULL, _IONBF, 0);
     pid_t child_pid;
     char inputBuffer[MAX_LINE];   /*buffer to hold command entered */
     int background;               /* equals 1 if a command is followed by '&' */
@@ -120,18 +118,13 @@ int main(void)
         switch (background)
         {
         case 0:
-            child_pid = wait(NULL);
+            wait(NULL);
             break;
         case 1:
-            child_pid = waitpid(-1,NULL,WNOHANG);
+            waitpid(-1,NULL,WNOHANG);
             break;
         }
 
-        /** the steps are:
-                        (1) fork a child process using fork()
-                        (2) the child process will invoke execv()
-						(3) if background == 0, the parent will wait,
-                        otherwise it will invoke the setup() function again. */
     }
 
 }
