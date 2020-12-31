@@ -181,8 +181,7 @@ int main(void)
                 insertPid(&foreground_pids, child_pid, processName, 0);
             break;
         case 1:
-            if (result != 0)
-                insertPid(&background_pids, child_pid, processName, &jobNumber);
+            insertPid(&background_pids, child_pid, processName, &jobNumber);
             break;
         }
     }
