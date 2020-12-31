@@ -280,7 +280,7 @@ int main(void)
             {
                 check_foreground_process(&foreground_pid, &jobNumber);
                 check_background_process(&background_pids, &finished_pids, &jobNumber);
-                run_command(commandIndex, &background_pids, &finished_pids, &jobNumber);
+                run_command(commandIndex, &background_pids, &finished_pids, &jobNumber,args);
                 continue;   
             }
      }
