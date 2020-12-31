@@ -93,15 +93,18 @@ int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
     pid_t child_pid;
+    pid_t result;
     char inputBuffer[MAX_LINE];   /*buffer to hold command entered */
     int background;               /* equals 1 if a command is followed by '&' */
     char *args[MAX_LINE / 2 + 1]; /*command line arguments */
     int jobNumber = 1;
     struct process *background_pids = createProcess();
     struct process *finished_pids = createProcess();
+    struct process *foreground_pids = createProcess();
     while (1)
     {
         background = 0;
+        check_background(&background_pids, &finished_pids, &jobNumber);
         printf("myshell: ");
         /*setup() calls exit() when Control-D is entered */
         setup(inputBuffer, args, &background);
@@ -174,19 +177,12 @@ int main(void)
         {
         case 0:
             child_pid = wait(NULL);
+            if (child_pid == 0)
+                insertPid(&foreground_pids, child_pid, processName, 0);
             break;
         case 1:
-            child_pid = waitpid(child_pid, NULL, WNOHANG);
-            if (child_pid == 0)
-            {
-                insertPid(&background_pids, getpid(), processName, &jobNumber);
-            }
-            else
-            {
-                deletePid(&background_pids, child_pid, &jobNumber);
-                insertPid(&finished_pids, child_pid, processName, &jobNumber);
-            }
-
+            if (result != 0)
+                insertPid(&background_pids, child_pid, processName, &jobNumber);
             break;
         }
     }

@@ -38,7 +38,29 @@ void ps_all(struct process **background, struct process **finished, int *jobNumb
     deleteList(finished);
 }
 
-void run_command(int index, struct process **finished_pids, struct process **background_pids, int *jobNumber)
+void check_background(struct process **backgroundList, struct process **finishedList, int *jobNumber)
+{
+    pid_t result;
+    struct process *iter = *backgroundList;
+    if (iter == NULL)
+        return;
+    char *processName;
+    while (iter != NULL)
+    {
+        processName = iter->processName;
+        result = waitpid(iter->pid, NULL, WNOHANG);
+        if (result == 0)
+            return;
+        else
+        {
+            deletePid(backgroundList, result, jobNumber);
+            insertPid(finishedList, result, processName, jobNumber);
+        }
+        iter = iter->next;
+    }
+}
+
+void run_command(int index, struct process **background_pids, struct process **finished_pids, int *jobNumber)
 {
     switch (index)
     {

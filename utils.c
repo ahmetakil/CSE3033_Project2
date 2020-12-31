@@ -123,7 +123,7 @@ void insertPid(struct process **processList, pid_t pid, char *processName, int *
 
 void deletePid(struct process **processList, pid_t pid, int *jobNumber)
 {
-    *jobNumber--;
+    *jobNumber -= 1;
     struct process *temp = *processList;
     if (temp != NULL && temp->pid == pid)
     {
