@@ -5,7 +5,9 @@
 
 #define MAX_LINE 80
 
-char *concat(const char *, const char *);
+struct process *background_pids;
+struct process *finished_pids;
+struct process *foreground_pid;
 
 struct process
 {
@@ -16,8 +18,19 @@ struct process
 };
 typedef struct process process;
 
+char *concat(const char *s1, const char *s2)
+{
+    char *result = malloc(strlen(s1) + strlen(s2) + 1); // +1 for the null-terminator
+    // in real code you would check for errors in malloc here
+    strcpy(result, s1);
+    strcat(result, s2);
+    return result;
+}
+
 char *findPath(char *command)
 {
+    if (command == NULL)
+        return NULL;
     char *paths;
     paths = getenv("PATH");
 
@@ -52,15 +65,6 @@ char *findPath(char *command)
     }
 
     return path;
-}
-
-char *concat(const char *s1, const char *s2)
-{
-    char *result = malloc(strlen(s1) + strlen(s2) + 1); // +1 for the null-terminator
-    // in real code you would check for errors in malloc here
-    strcpy(result, s1);
-    strcat(result, s2);
-    return result;
 }
 
 void build_command(char *args[])
@@ -101,13 +105,16 @@ char *getProcessName(char *args[])
     return processName;
 }
 
-void insertPid(struct process **processList, pid_t pid, char *processName, int *jobNumber)
+void insertPid(struct process **processList, pid_t pid, char *processName, int *jobNumber, bool background)
 {
     struct process *new = malloc(sizeof(struct process));
     new->pid = pid;
     new->processName = processName;
-    new->jobNumber = *jobNumber;
-
+    if (background)
+    {
+        new->jobNumber = *jobNumber;
+        *jobNumber += 1;
+    }
     new->next = NULL;
     if (*processList == NULL)
         *processList = new;
@@ -118,12 +125,10 @@ void insertPid(struct process **processList, pid_t pid, char *processName, int *
             iter = iter->next;
         iter->next = new;
     }
-    *jobNumber += 1;
 }
 
-void deletePid(struct process **processList, pid_t pid, int *jobNumber)
+void deletePid(struct process **processList, pid_t pid)
 {
-    *jobNumber -= 1;
     struct process *temp = *processList;
     if (temp != NULL && temp->pid == pid)
     {
@@ -153,4 +158,56 @@ void deleteList(struct process **processList)
         current = next;
     }
     *processList = NULL;
+}
+
+void check_background_process(struct process **backgroundList, struct process **finishedList, int *jobNumber)
+{
+    pid_t pid;
+    struct process *iter = *backgroundList;
+    if (iter == NULL)
+        return;
+    char *processName;
+    while (iter != NULL)
+    {
+        processName = iter->processName;
+        pid = waitpid(iter->pid, NULL, WNOHANG);
+        if (pid == 0)
+            return;
+        else
+        {
+            deletePid(backgroundList, pid);
+            insertPid(finishedList, pid, processName, jobNumber, false);
+        }
+        iter = iter->next;
+    }
+}
+
+void check_foreground_process(struct process **foregroundList, int *jobNumber)
+{
+    pid_t pid;
+    struct process *current = *foregroundList;
+    char *processName;
+    if (current == NULL)
+        return;
+    processName = current->processName;
+    pid = wait(NULL);
+    if (pid == 0)
+        return;
+    else
+    {
+        deletePid(foregroundList, pid);
+    }
+}
+
+char *buildString(char *array[MAX_LINE / 2 + 1])
+{
+    char *temp = malloc(MAX_LINE / 2 + 1);
+    int i=0;
+    while (array[i] != NULL)
+    {
+        temp = concat(temp, array[i]);
+        temp = concat(temp, " ");
+        i++;
+    }
+    return temp;
 }

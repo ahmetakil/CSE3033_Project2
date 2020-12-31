@@ -1,11 +1,14 @@
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
 #include "utils.c"
 
 const char *COMMANDS[] = {"ps_all", "search", "bookmark", "exit"};
 
 int check_command(char *command)
 {
+    if (command == NULL)
+        return 0;
     int len = sizeof(COMMANDS) / sizeof(*COMMANDS);
     int i;
 
@@ -38,25 +41,15 @@ void ps_all(struct process **background, struct process **finished, int *jobNumb
     deleteList(finished);
 }
 
-void check_background(struct process **backgroundList, struct process **finishedList, int *jobNumber)
+void check_exit(struct process **background_pids)
 {
-    pid_t result;
-    struct process *iter = *backgroundList;
+
+    struct process *iter = *background_pids;
     if (iter == NULL)
-        return;
-    char *processName;
-    while (iter != NULL)
+        exit(0);
+    else
     {
-        processName = iter->processName;
-        result = waitpid(iter->pid, NULL, WNOHANG);
-        if (result == 0)
-            return;
-        else
-        {
-            deletePid(backgroundList, result, jobNumber);
-            insertPid(finishedList, result, processName, jobNumber);
-        }
-        iter = iter->next;
+        printf("There are still running background applications.");
     }
 }
 
@@ -68,7 +61,32 @@ void run_command(int index, struct process **background_pids, struct process **f
         ps_all(background_pids, finished_pids, jobNumber);
         break;
 
+    case 4:
+        check_exit(background_pids);
+        break;
+
     default:
         break;
+    }
+}
+
+void handler(int signo)
+{
+    if (foreground_pid == NULL)
+        return;
+    pid_t pid = foreground_pid->pid;
+    deletePid(&foreground_pid, pid);
+    kill(pid, SIGKILL);
+}
+
+void change_signal()
+{
+    struct sigaction act;
+    act.sa_handler = handler; /* set up signal handler */
+    act.sa_flags = 0;
+    if ((sigemptyset(&act.sa_mask) == -1) ||
+        (sigaction(20, &act, NULL) == -1))
+    {
+        perror("Failed to set SIGSTOP handler");
     }
 }

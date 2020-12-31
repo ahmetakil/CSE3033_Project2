@@ -1,5 +1,6 @@
 .devcontainer
 .vscode
+main
 exec
 redirect&pipes
 .&.swp
