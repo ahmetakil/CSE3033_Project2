@@ -11,6 +11,10 @@
 
 const char *COMMANDS[] = {"ps_all", "search", "bookmark", "exit"};
 
+/*
+ * Checks the given *command parameter and returns the index
+ * in the COMMANDS array.
+ */
 int check_command(char *command) {
     if (command == NULL)
         return 0;
@@ -42,6 +46,11 @@ void ps_all(struct process **background, struct process **finished, int *jobNumb
     deleteList(finished);
 }
 
+/*
+ * Before exiting, this functions
+ * makes sure there is no background process
+ * running.
+ */
 void check_exit(struct process **background_pids) {
 
     struct process *iter = *background_pids;
@@ -52,13 +61,20 @@ void check_exit(struct process **background_pids) {
     }
 }
 
-
+/*
+ * Determines if it is a file or directory.
+ */
 int is_regular_file(const char *path) {
     struct stat path_stat;
     stat(path, &path_stat);
     return S_ISREG(path_stat.st_mode);
 }
 
+/*
+ * isRecursive: boolean parameter
+ * searchTerm: The given searchTerm
+ * path: Recursively called path argument.
+ */
 void search(char *path, char *searchTerm, int isRecursive) {
     struct dirent *dp;
     DIR *dir = opendir(path);
@@ -118,7 +134,11 @@ void search(char *path, char *searchTerm, int isRecursive) {
     closedir(dir);
 }
 
-
+/*
+ * This function gets called from main and determines
+ * which function should be called and also supplies
+ * the arguments background_pids and finished_pids
+ */
 void
 run_command(int index, struct process **background_pids, struct process **finished_pids, int *jobNumber, char *args[]) {
 
