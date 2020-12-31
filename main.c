@@ -99,7 +99,7 @@ int main(void)
     int background;               /* equals 1 if a command is followed by '&' */
     char *args[MAX_LINE / 2 + 1]; /*command line arguments */
     int jobNumber = 1;
-    char *recorededCommands[MAX_LINE / 2 + 1];
+    char *recordedCommands[MAX_LINE / 2 + 1] = {NULL};
 
     background_pids = createProcess();
     finished_pids = createProcess();
@@ -118,6 +118,7 @@ int main(void)
         char *processName = getProcessName(args);
         char *path = findPath(args[0]);
         int commandIndex = check_command(command);
+
         if (!commandIndex && path == NULL)
         {
             perror(("%s is not a valid command", command));
@@ -194,95 +195,106 @@ int main(void)
             }
             execv(path, &args[0]);
         }
-        else
+        else if (commandIndex)
         {
-            if (commandIndex)
+            if (commandIndex == 3)
             {
-                if (commandIndex == 3)
+                int i = 0;
+                while (args[i] != NULL)
                 {
-                    int i = 0;
-                    while (args[i] != NULL)
+                    char *word = *(&args[i]);
+                    for (int j = 0; j < sizeof(word); ++j)
                     {
-                        char *word = *(&args[i]);
-                        for (int j = 0; j < sizeof(word); ++j)
+                        if (word[j] == '\\' || word[j] == '"')
                         {
-                            if (word[j] == '\\' || word[j] == '"')
-                            {
-                                int idxToDel = j;
-                                memmove(&word[idxToDel], &word[idxToDel + 1], strlen(word) - idxToDel);
-                            }
-                            else if (word[j] == '-')
-                            {
-                                continue;
-                            }
-                            else if (word[j] < 'a' || word[j] > 'z')
-                            {
-                                break;
-                            }
+                            int idxToDel = j;
+                            memmove(&word[idxToDel], &word[idxToDel + 1], strlen(word) - idxToDel);
                         }
+                        else if (word[j] == '-')
+                        {
+                            continue;
+                        }
+                        else if (word[j] < 'a' || word[j] > 'z')
+                        {
+                            break;
+                        }
+                    }
+                    i++;
+                }
+                char *type = *(&args[1]);
+                if (strcmp(type, "-d") == 0)
+                {
+                    int index;
+                    if (args[2] != NULL)
+                        index = atoi(args[2]);
+                    recordedCommands[index] = "&";
+                    build_command(recordedCommands);
+                }
+                // args ı newargsa eşitlememiz gerek.
+                else if (strcmp(type, "-l") == 0)
+                {
+                    int k = 0;
+                    while (recordedCommands[k] != NULL)
+                    {
+                        char *line = *(&recordedCommands[k]);
+                        printf("\t%d %s\n", k, line);
+                        k++;
+                    }
+                }
+                else if (strcmp(type, "-i") == 0)
+                {
+                    int index;
+                    if (args[2] == NULL)
+                        continue;
+                    index = atoi(args[2]);
+
+                    char *commandString;
+                    memcpy(commandString, recordedCommands[index], MAX_LINE / 2 + 1);
+                    char *commandArray[MAX_LINE / 2 + 1] = {NULL};
+
+                    char *token = strtok_r(commandString, " ", &commandString);
+                    int i = 0;
+                    while ((token = strtok_r(commandString, " ", &commandString)))
+                    {
+                        commandArray[i] = token;
                         i++;
                     }
-                    *recorededCommands = malloc(sizeof(recorededCommands) * sizeof(*recorededCommands));
-                    //// String will be builded & recordedCommand e boş yere eklenicek
-                    char *string = buildString(args);
-                    int j = 0;
-                    while (recorededCommands[j] != NULL)
-                    {
-                        j++;
-                    }
-                    recorededCommands[j] = string;
-                    continue;
-
-                    char *new_args[MAX_LINE / 2 + 1];
-                    *new_args = malloc(sizeof(new_args) * sizeof(*new_args));
-                    char *type = *(&args[1]);
-                    if (strcmp(type, "-d") == 0)
-                    {
-                        int k = 0;
-                        int count = 0;
-                        while (args[k] != NULL)
-                        {
-                            if (k != atoi(args[2]))
-                            {
-                                char *word = args[k];
-                                strcpy(new_args[count], word);
-                                count++;
-                            }
-                            k++;
-                        }
-                    }
-                    // args ı newargsa eşitlememiz gerek.
-                    else if (strcmp(type, "-l") == 0)
-                    {
-                        int k = 0;
-                        while (args[k] != NULL)
-                        {
-                            char *line = *(&args[k]);
-                            printf("%d %s", k, line);
-                        }
-                    }
-                    continue;
+                    path = findPath(commandArray[0]);
+                    insertPid(&finished_pids, child_pid, processName, &jobNumber, false);
+                    pid_t temp;
+                    temp = fork();
+                    if(temp==0)
+                    	execv(path, &commandArray[0]);
                 }
                 else
                 {
-                    check_foreground_process(&foreground_pid, &jobNumber);
-                    check_background_process(&background_pids, &finished_pids, &jobNumber);
-                    run_command(commandIndex, &background_pids, &finished_pids, &jobNumber);
+                    char *string = buildString(args);
+                    int j = 0;
+                    while (recordedCommands[j] != NULL)
+                        j++;
+                    recordedCommands[j + 1] = "";
+                    recordedCommands[j] = string;
                     continue;
                 }
-
-                switch (background)
-                {
-                case 0:
-                    insertPid(&foreground_pid, child_pid, processName, &jobNumber, false);
-                    waitpid(-1, NULL, WNOHANG);
-                    break;
-                case 1:
-                    insertPid(&background_pids, child_pid, processName, &jobNumber, true);
-                    break;
-                }
+            }else
+            {
                 check_foreground_process(&foreground_pid, &jobNumber);
+                check_background_process(&background_pids, &finished_pids, &jobNumber);
+                run_command(commandIndex, &background_pids, &finished_pids, &jobNumber);
+                continue;   
             }
+     }
+            switch (background)
+            {
+            case 0:
+                insertPid(&foreground_pid, child_pid, processName, &jobNumber, false);
+                waitpid(-1, NULL, WNOHANG);
+                break;
+            case 1:
+                insertPid(&background_pids, child_pid, processName, &jobNumber, true);
+                break;
+            }
+            check_foreground_process(&foreground_pid, &jobNumber);
         }
-    }
+    
 }
