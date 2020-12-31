@@ -70,7 +70,35 @@ void search(char *path, char *searchTerm, int isRecursive) {
     while ((dp = readdir(dir)) != NULL) {
         if (strstr(dp->d_name, ".c") != NULL || strstr(dp->d_name, ".h") != NULL ||
             strstr(dp->d_name, ".C") != NULL || strstr(dp->d_name, ".H") != NULL) {
-            printf("%s\n", dp->d_name);
+
+            ssize_t line_size;
+            char *line_buf = NULL;
+            size_t line_buf_size = 0;
+
+            char *copy = malloc(sizeof(char *));
+            strcpy(copy, path);
+            strcat(copy, "/");
+            strcat(copy, dp->d_name);
+
+            FILE *fp = fopen(copy, "r");
+            line_size = getline(&line_buf, &line_buf_size, fp);
+            int line_count = 0;
+
+            while (line_size >= 0) {
+                line_count++;
+
+                if (strstr(line_buf, searchTerm)) {
+                    printf("%d: %s -> %s\n", line_count, copy,
+                           line_buf);
+                }
+
+                line_size = getline(&line_buf, &line_buf_size, fp);
+            }
+
+            free(line_buf);
+            line_buf = NULL;
+
+            fclose(fp);
         }
 
 
@@ -87,7 +115,6 @@ void search(char *path, char *searchTerm, int isRecursive) {
         }
     }
 
-    // Close directory stream
     closedir(dir);
 }
 
@@ -97,20 +124,24 @@ run_command(int index, struct process **background_pids, struct process **finish
 
     switch (index) {
         case 1:
-            printf("Case 1");
             ps_all(background_pids, finished_pids, jobNumber);
             break;
 
         case 2:
 
-            printf("Case 2");
-
             if (strcmp(args[1], "-r") == 0) {
 
-                search(".", args[2], 1);
+                char *string = args[2];
+                string++; // Remove first character the starting quote
+                string[strlen(string) - 1] = '\0'; // Remove the last character the ending quote
+
+                search(".", string, 1);
             } else {
 
-                search(".", args[1], 0);
+                char *string = args[1];
+                string++; // Remove first character the starting quote
+                string[strlen(string) - 1] = '\0'; // Remove the last character the ending quote
+                search(".", string, 0);
             }
 
             break;
