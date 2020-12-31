@@ -53,12 +53,34 @@ void check_exit(struct process **background_pids)
     }
 }
 
-void run_command(int index, struct process **background_pids, struct process **finished_pids, int *jobNumber)
+void search(char* path,int isRecursive){
+
+printf("\nsearch(%s and %d\n",path,isRecursive);
+
+}
+
+
+void run_command(int index, struct process **background_pids, struct process **finished_pids, int *jobNumber, char *args[])
 {
+
     switch (index)
     {
     case 1:
+        printf("Case 1");
         ps_all(background_pids, finished_pids, jobNumber);
+        break;
+
+    case 2:
+
+        printf("Case 2");
+        if(strcmp(args[1],"-r") == 0){
+            printf("A");
+            search(args[2],1);
+        }else{
+            printf("B");
+            search(args[1],0);
+        }
+
         break;
 
     case 4:
