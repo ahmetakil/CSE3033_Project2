@@ -152,9 +152,35 @@ int main(void)
 
                     char *outputFile = args[index + 1];
                     int tableIndex = open(outputFile, CREATE_FLAGS_APPEND, CREATE_MODE);
-                    args[index] = "\0";
+                    args[index] = NULL;
 
                     if (dup2(tableIndex, STDOUT_FILENO) == -1)
+                    {
+                        perror("Failed to close the file");
+                        return 1;
+                    }
+                }
+                else if (strcmp(args[index], "2>") == 0)
+                {
+
+                    char *outputFile = args[index + 1];
+                    int tableIndex = open(outputFile, CREATE_FLAGS_APPEND, CREATE_MODE);
+                    args[index] = NULL;
+
+                    if (dup2(tableIndex, STDERR_FILENO) == -1)
+                    {
+                        perror("Failed to close the file");
+                        return 1;
+                    }
+                }
+                else if (strcmp(args[index], "<") == 0)
+                {
+
+                    char *outputFile = args[index + 1];
+                    int tableIndex = open(outputFile, CREATE_FLAGS_APPEND, CREATE_MODE);
+                    args[index] = NULL;
+
+                    if (dup2(tableIndex, STDIN_FILENO) == -1)
                     {
                         perror("Failed to close the file");
                         return 1;
