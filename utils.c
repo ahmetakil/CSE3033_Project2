@@ -70,7 +70,7 @@ void build_command(char *args[])
     {
         if (strcmp(args[i], "&") == 0)
         {
-            int j=i;
+            int j = i;
             while (args[j] != NULL)
             {
                 args[j] = "\0";
@@ -103,8 +103,6 @@ char *getProcessName(char *args[])
 
 void insertPid(struct process **processList, pid_t pid, char *processName, int *jobNumber)
 {
-    *jobNumber += 1;
-
     struct process *new = malloc(sizeof(struct process));
     new->pid = pid;
     new->processName = processName;
@@ -120,17 +118,17 @@ void insertPid(struct process **processList, pid_t pid, char *processName, int *
             iter = iter->next;
         iter->next = new;
     }
+    *jobNumber += 1;
 }
 
 void deletePid(struct process **processList, pid_t pid, int *jobNumber)
 {
+    *jobNumber--;
     struct process *temp = *processList;
-    *jobNumber -= 1;
     if (temp != NULL && temp->pid == pid)
     {
         *processList = temp->next;
         free(temp);
-        return;
     }
     struct process *prev;
     while (temp != NULL && temp->pid != pid)
@@ -142,7 +140,6 @@ void deletePid(struct process **processList, pid_t pid, int *jobNumber)
         return;
     prev->next = temp->next;
     free(temp);
-    return;
 }
 
 void deleteList(struct process **processList)

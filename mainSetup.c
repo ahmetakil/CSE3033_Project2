@@ -4,9 +4,13 @@
 #include <errno.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <fcntl.h>
 #include "commands.c"
 
 #define MAX_LINE 80 /* 80 chars per line, per command, should be enough. */
+#define CREATE_FLAGS_APPEND (O_WRONLY | O_CREAT | O_APPEND)
+#define CREATE_FLAGS_OVERWRITE (O_WRONLY | O_CREAT)
+#define CREATE_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 
 /* The setup function below will not return any value, but it will just: read
 in the next command line; separate it into distinct arguments (using blanks as
@@ -122,6 +126,40 @@ int main(void)
         }
         if (child_pid == 0 && path != NULL)
         {
+
+            int index = 0;
+            while (args[index] != NULL)
+            {
+
+                if (strcmp(args[index], ">") == 0)
+                {
+
+                    char *outputFile = args[index + 1];
+                    int tableIndex = open(outputFile, CREATE_FLAGS_OVERWRITE, CREATE_MODE);
+                    args[index] = NULL;
+
+                    if (dup2(tableIndex, STDOUT_FILENO) == -1)
+                    {
+                        perror("Failed to close the file");
+                        return 1;
+                    }
+                }
+                else if (strcmp(args[index], ">>") == 0)
+                {
+
+                    char *outputFile = args[index + 1];
+                    int tableIndex = open(outputFile, CREATE_FLAGS_APPEND, CREATE_MODE);
+                    args[index] = "\0";
+
+                    if (dup2(tableIndex, STDOUT_FILENO) == -1)
+                    {
+                        perror("Failed to close the file");
+                        return 1;
+                    }
+                }
+
+                index++;
+            }
             execv(path, &args[0]);
         }
         else
@@ -138,14 +176,17 @@ int main(void)
             child_pid = wait(NULL);
             break;
         case 1:
-            child_pid = waitpid(-1, NULL, WNOHANG);
-            if (child_pid != 0)
-                insertPid(&background_pids, child_pid, processName, &jobNumber);
+            child_pid = waitpid(child_pid, NULL, WNOHANG);
+            if (child_pid == 0)
+            {
+                insertPid(&background_pids, getpid(), processName, &jobNumber);
+            }
             else
             {
                 deletePid(&background_pids, child_pid, &jobNumber);
                 insertPid(&finished_pids, child_pid, processName, &jobNumber);
             }
+
             break;
         }
     }
